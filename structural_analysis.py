@@ -1,4 +1,3 @@
-import pandas as pd
 import math
 import numpy as np
 import scipy.stats as stats
@@ -7,11 +6,12 @@ import seaborn as sns
 import Bio.SeqIO
 import Bio.AlignIO
 import statistics
-import column_data
 import importlib
 from Bio.PDB import *
 import os
-importlib.reload(column_data)
+import pandas as pd
+import matplotlib.patches as mpatches
+
 def get_struc_info(df):
     n_res = len(df.drop_duplicates(['UniProt_dbAccessionId_A', 'PDB_dbAccessionId_A', 'PDB_dbChainId_A', 'PDB_dbResNum_A']))
     n_res_un = len(df.drop_duplicates(["SOURCE_ID_A", "Alignment_column_A"]))
@@ -81,16 +81,21 @@ def plot_rsa_consensus(df_dssp, palette = ["darkgreen", "red", "darkred"], bwidt
 
     r = list(np.arange(1, n_cols*1.5, 1.5))
     
-    plt.figure(figsize=(140,60))
-    plt.rcParams.update({"axes.linewidth": 5})
-    plt.bar(r, core,  color=palette[0], edgecolor='black', linewidth = 5, width=bwidth, label = 'Core')
-    plt.bar(r, part, color=palette[1], bottom = core, edgecolor='black', linewidth = 5, width=bwidth, label = 'Part')
-    plt.bar(r, surf,  bottom = bottom, color=palette[2], edgecolor='black', linewidth = 5, width=bwidth, label = 'Surf')
-    plt.title('DSSP RSA classification', pad = 100, fontsize = 140)
-    plt.xlabel('Consensus residue position', labelpad = 100, fontsize = 120)
-    plt.ylabel('p', labelpad = 100, fontsize = 120)
-    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5),fontsize = 80)
-    plt.tick_params(axis= 'both' , which = 'major', pad = 60, width = 5, length = 30, labelsize = 100)
+    plt.figure(figsize=(180,80))
+    plt.rcParams.update({"axes.linewidth": 10})
+    plt.bar(r, core,  color=palette[0], edgecolor='black', linewidth = 7.5, width=bwidth, label = 'Core')
+    plt.bar(r, part, color=palette[1], bottom = core, edgecolor='black', linewidth = 7.5, width=bwidth, label = 'Part')
+    plt.bar(r, surf,  bottom = bottom, color=palette[2], edgecolor='black', linewidth = 7.5, width=bwidth, label = 'Surf')
+    #plt.title('DSSP RSA classification', pad = 100, fontsize = 140)
+    plt.xlabel('Consensus residue position', labelpad = 100, fontsize = 160)
+    plt.ylabel('p', labelpad = 100, fontsize = 160)
+    #plt.legend(loc='center left', bbox_to_anchor=(1, 0.5),fontsize = 80)
+    legend = plt.legend(loc='center left', bbox_to_anchor=(1, 0.5),fontsize = 120)
+    legend.get_frame().set_linewidth(10)
+    legend.get_frame().set_edgecolor("black")
+    for legobj in legend.legendHandles:
+        legobj.set_linewidth(7.5)
+    plt.tick_params(axis= 'both' , which = 'major', pad = 60, width = 15, length = 50, labelsize = 140)
     plt.xticks(np.arange(1, n_cols*1.5, 1.5), list(range(1, n + 1)))
     plt.yticks(np.arange(0, 1.1, 0.1))
     plt.axhline(y=0.5, linewidth = 5, linestyle = "--", color = 'black')
@@ -115,20 +120,69 @@ def plot_rsa_median(rsa_dict, out = None):
         else:
             palette[c] = "tomato"
         c +=1
-    
-    plt.figure(figsize=(140,60))
-    ax=sns.barplot(ks, vs, edgecolor = 'black', palette = palette,linewidth = 5)
-    ax.set_title('Median RSA per consensus position', pad =100, fontsize = 140)
-    ax.tick_params(axis= 'both' , which = 'major', pad = 60, width = 5, length = 30, labelsize = 100)
-    ax.set_xlabel("Consensus residue position", labelpad = 100, fontsize = 120)
-    ax.set_ylabel('Median RSA', labelpad = 100, fontsize = 120)
-    ax.axhline(25, linewidth = 5, color = 'black', linestyle = '--')
-    ax.axhline(5, linewidth = 5, color = 'black', linestyle = '--')
+        
+    legend_dict = { 'Core' : 'royalblue', 'Part' : 'tomato', 'Surf' : 'firebrick' }
+    patchList = []
+    for key in legend_dict:
+        data_key = mpatches.Patch(facecolor=legend_dict[key], label=key, edgecolor = "black", linewidth = 3)
+        patchList.append(data_key)
+        
+    i = 1
+    lowerbound = []
+    upperbound = []
+    for v in rsa_dict.values():
+        med = statistics.median(v)
+        data = pd.Series(v)
+        low, up = medianCI(data, 0.95, 0.5)
+        lowerbound.append(med-low)
+        upperbound.append(up-med)
+        i = i+1
+    plt.figure(figsize=(180,80))
+    plt.rcParams.update({"axes.linewidth": 10})
+    ax=sns.barplot(ks, vs, edgecolor = 'black', palette = palette,linewidth = 7.5)#,
+                   #ci=[lowerbound, upperbound], errcolor = "black", errwidth = 7.5, capsize = 35)
+    plt.errorbar([k-1 for k in ks], vs, yerr=[lowerbound, upperbound], c = "black", linewidth = 10, linestyle="None", capsize = 35.0, capthick = 7.5)
+    #ax.set_title('Median RSA per consensus position', pad =100, fontsize = 140)
+    ax.tick_params(axis= 'both' , which = 'major', pad = 60, width = 15, length = 50, labelsize = 140)
+    ax.set_xlabel("Domain position", labelpad = 100, fontsize = 160)
+    ax.set_ylabel('Median RSA', labelpad = 100, fontsize = 160)
+    ax.axhline(25, linewidth = 7.5, color = 'black', linestyle = '--')
+    ax.axhline(5, linewidth = 7.5, color = 'black', linestyle = '--')
     plt.xlim(-0.7,32.7)
+    plt.yticks(np.arange(0, 75, 5))
+    legend = plt.legend(handles=patchList, loc='center left', bbox_to_anchor=(1, 0.5),fontsize = 120)
+    legend.get_frame().set_linewidth(10)
+    legend.get_frame().set_edgecolor("black")
+    for legobj in legend.legendHandles:
+        legobj.set_linewidth(7.5)
     if out != None:
         plt.savefig(out)
     plt.show()
-    return vs 
+    return vs
+
+def medianCI(data, ci, p):
+    '''
+    data: pandas datafame/series or numpy array
+    ci: confidence level
+    p: percentile' percent, for median it is 0.5
+    output: a list with two elements, [lowerBound, upperBound]
+    '''
+    if type(data) is pd.Series or type(data) is pd.DataFrame:
+        #transfer data into np.array
+        data = data.values
+
+    #flat to one dimension array
+    data = data.reshape(-1)
+    data = np.sort(data)
+    N = data.shape[0]
+    
+    lowCount, upCount = stats.binom.interval(ci, N, p, loc=0)
+    #given this: https://onlinecourses.science.psu.edu/stat414/node/316
+    #lowCount and upCount both refers to  W's value, W follows binomial Dis.
+    #lowCount need to change to lowCount-1, upCount no need to change in python indexing
+    lowCount -= 1
+    # print lowCount, upCount
+    return data[int(lowCount)], data[int(upCount)]
 
 def get_rsa_cons_dict(rsa_class_dict):
     c = 1
@@ -247,16 +301,21 @@ def plot_ss_class_consensus(df_dssp, palette = ["mediumseagreen", "tomato", "cor
         bottom.append(strand[i]+helix[i])
 
     r = list(np.arange(1,n_cols*1.5,1.5))
-    plt.figure(figsize=(140,60))
-    plt.rcParams.update({"axes.linewidth": 5})
-    plt.bar(r, strand,  color=palette[0], edgecolor='black', linewidth = 5, width=bwidth, label = 'Strand')
-    plt.bar(r, helix, color=palette[1], bottom = strand, edgecolor='black', linewidth = 5, width=bwidth, label = 'Helix')
-    plt.bar(r, coil,  bottom = bottom, color=palette[2], edgecolor='black', linewidth = 5, width=bwidth, label = 'Loop')
-    plt.title('DSSP Secondary structure classification', pad = 100, fontsize = 140)
-    plt.xlabel('Consensus residue position', labelpad = 100, fontsize = 120)
-    plt.ylabel('p', labelpad = 100, fontsize = 120)
-    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5),fontsize = 80)
-    plt.tick_params(axis= 'both' , which = 'major', pad = 60, width = 5, length = 30, labelsize = 100)
+    plt.figure(figsize=(180,80))
+    plt.rcParams.update({"axes.linewidth": 10})
+    plt.bar(r, strand,  color=palette[0], edgecolor='black', linewidth = 7.5, width=bwidth, label = 'Strand')
+    plt.bar(r, helix, color=palette[1], bottom = strand, edgecolor='black', linewidth = 7.5, width=bwidth, label = 'Helix')
+    plt.bar(r, coil,  bottom = bottom, color=palette[2], edgecolor='black', linewidth = 7.5, width=bwidth, label = 'Loop')
+    #plt.title('DSSP Secondary structure classification', pad = 100, fontsize = 140)
+    plt.xlabel('Domain position', labelpad = 100, fontsize = 160)
+    plt.ylabel('p', labelpad = 100, fontsize = 160)
+    #plt.legend(loc='center left', bbox_to_anchor=(1, 0.5),fontsize = 80)
+    legend = plt.legend(loc='center left', bbox_to_anchor=(1, 0.5),fontsize = 120)
+    legend.get_frame().set_linewidth(10)
+    legend.get_frame().set_edgecolor("black")
+    for legobj in legend.legendHandles:
+        legobj.set_linewidth(7.5)
+    plt.tick_params(axis= 'both' , which = 'major', pad = 60, width = 15, length = 50, labelsize = 140)
     plt.axhline(y=0.5, linewidth = 5, linestyle = "--", color = 'black')
     plt.xticks(np.arange(1,n_cols*1.5,1.5),list(range(1, n_cols + 1)))
     plt.yticks(np.arange(0,1.1,0.1))
@@ -371,37 +430,42 @@ def plot_ss_consensus(df_dssp, palette = ["firebrick", "orangered", "darkorange"
     #print(bottom)
     #print(len(bottom))
     r = list(np.arange(1,n_cols*1.5,1.5))
-    plt.figure(figsize=(140,60))
-    plt.rcParams.update({"axes.linewidth": 5})
-    plt.bar(r, a_helix,  color=palette[0], bottom = bottom, edgecolor='black', linewidth = 5, width=bwidth, label = r'$\alpha$-helix')
+    plt.figure(figsize=(180,80))
+    plt.rcParams.update({"axes.linewidth": 10})
+    plt.bar(r, a_helix,  color=palette[0], bottom = bottom, edgecolor='black', linewidth = 7.5, width=bwidth, label = r'$\alpha$-helix')
     for i in range(0, n_cols):
         bottom[i] += a_helix[i]
-    plt.bar(r, helix_3_10, color=palette[1], bottom = bottom,  edgecolor='black', linewidth = 5, width=bwidth, label = r'$3_{10}$-helix')
+    plt.bar(r, helix_3_10, color=palette[1], bottom = bottom,  edgecolor='black', linewidth = 7.5, width=bwidth, label = r'$3_{10}$-helix')
     for i in range(0, n_cols):
         bottom[i] += helix_3_10[i]
-    plt.bar(r, pi_helix,  color=palette[2], bottom = bottom,  edgecolor='black', linewidth = 5, width=bwidth, label = r'$\pi$-helix')
+    plt.bar(r, pi_helix,  color=palette[2], bottom = bottom,  edgecolor='black', linewidth = 7.5, width=bwidth, label = r'$\pi$-helix')
     for i in range(0, n_cols):
         bottom[i] += pi_helix[i]
-    plt.bar(r, b_bridge,  color=palette[3], bottom = bottom, edgecolor='black', linewidth = 5, width=bwidth, label = r'$\beta$-bridge')
+    plt.bar(r, b_bridge,  color=palette[3], bottom = bottom, edgecolor='black', linewidth = 7.5, width=bwidth, label = r'$\beta$-bridge')
     for i in range(0, n_cols):
         bottom[i] += b_bridge[i]
-    plt.bar(r, strand, color=palette[4], bottom = bottom, edgecolor='black', linewidth = 5, width=bwidth, label = r'$\beta$-strand')
+    plt.bar(r, strand, color=palette[4], bottom = bottom, edgecolor='black', linewidth = 7.5, width=bwidth, label = r'$\beta$-strand')
     for i in range(0, n_cols):
         bottom[i] += strand[i]
-    plt.bar(r, turn,  color=palette[5], bottom = bottom, edgecolor='black', linewidth = 5, width=bwidth, label = 'Turn')
+    plt.bar(r, turn,  color=palette[5], bottom = bottom, edgecolor='black', linewidth = 7.5, width=bwidth, label = 'Turn')
     for i in range(0, n_cols):
         bottom[i] += turn[i]
-    plt.bar(r, bend,  color=palette[6], bottom = bottom,edgecolor='black', linewidth = 5, width=bwidth, label = 'Bend')
+    plt.bar(r, bend,  color=palette[6], bottom = bottom,edgecolor='black', linewidth = 7.5, width=bwidth, label = 'Bend')
     for i in range(0, n_cols):
         bottom[i] += bend[i]
-    plt.bar(r, coil, color=palette[7], bottom = bottom, edgecolor='black', linewidth = 5, width=bwidth, label = 'Coil')
+    plt.bar(r, coil, color=palette[7], bottom = bottom, edgecolor='black', linewidth = 7.5, width=bwidth, label = 'Coil')
     
-    plt.title('DSSP Secondary structure assignment', pad = 100, fontsize = 140)
-    plt.xlabel('Consensus residue position', labelpad = 100, fontsize = 120)
-    plt.ylabel('p', labelpad = 100, fontsize = 120)
-    plt.legend(loc='center left', bbox_to_anchor=(1, 0.5),fontsize = 80)
-    plt.tick_params(axis= 'both' , which = 'major', pad = 60, width = 5, length = 30, labelsize = 100)
-    plt.axhline(y=0.5, linewidth = 5, linestyle = "--", color = 'black')
+    #plt.title('DSSP Secondary structure assignment', pad = 100, fontsize = 140)
+    plt.xlabel('Domain position', labelpad = 100, fontsize = 160)
+    plt.ylabel('p', labelpad = 100, fontsize = 160)
+    legend = plt.legend(loc='center left', bbox_to_anchor=(1, 0.5),fontsize = 120)
+    #legend = ax.legend()
+    legend.get_frame().set_linewidth(10)
+    legend.get_frame().set_edgecolor("black")
+    for legobj in legend.legendHandles:
+        legobj.set_linewidth(7.5)
+    plt.tick_params(axis= 'both' , which = 'major', pad = 60, width = 15, length = 50, labelsize = 140)
+    plt.axhline(y=0.5, linewidth = 7.5, linestyle = "--", color = 'black')
     plt.xticks(np.arange(1,n_cols*1.5,1.5),list(range(1, n_cols + 1)))
     plt.yticks(np.arange(0,1.1,0.1))
     plt.xlim(0,(n_cols*1.5)+0.5)
@@ -556,6 +620,7 @@ def get_ppis(df, aln_len, col_mask):
     return cons_norm
 
 def get_OR(df):
+    df.contacts = df.contacts + 1 #pseudocount
     tot_occ = sum(df.occ)
     tot_cons = sum(df.contacts)
     for i in range(1, len(df)+1):
@@ -573,18 +638,35 @@ def get_OR(df):
         df.loc[i,'ci_dist'] = se_logor
     return df
 
+def get_surf_dict():
+    surf = {}
+    core = [4, 5, 6, 7, 9, 10, 17, 18, 21]
+    convex = [13, 14, 15, 16, 19, 20, 22, 23, 24]
+    concave = [1, 3, 8, 11, 12, 32, 33]
+    basal = [25, 26, 27, 28, 29, 30, 31, 2]
+    for i in range(1,34):
+        if i in core:
+            surf[i] = 'Core'
+        elif i in convex:
+            surf[i] = 'Convex'
+        elif i in concave:
+            surf[i] = 'Concave'
+        elif i in basal:
+            surf[i] = 'Basal'
+    return surf
+
 def add_surf_class(df):
-    surf = column_data.get_surf_dict()
+    surf = get_surf_dict()
     df['surf'] = df.index.map(surf)
     colors_surf = {}
     for k, v in surf.items():
-        if v == 'core':
+        if v == 'Core':
             colors_surf[k] = 'royalblue'
-        elif v == 'concave':
+        elif v == 'Concave':
             colors_surf[k] = 'darkred'
-        elif v == 'convex':
+        elif v == 'Convex':
             colors_surf[k] = 'orange'
-        elif v == 'bottom':
+        elif v == 'Basal':
             colors_surf[k] = 'darkgreen'
     df['color_surf'] = df.index.map(colors_surf)
     return df
@@ -592,7 +674,7 @@ def add_surf_class(df):
 def add_miss_class(df):
     UMD = [1,3,8,33]
     UME = [11,12,15,23,24,30,31]
-    CMD = [6,9,21,22]
+    CMD = [6,9,13, 21,22]
     CME = [4,5]
     for i in range(1,34):
         if i in UMD:
@@ -606,36 +688,41 @@ def add_miss_class(df):
             df.loc[i,'color_class'] = 'royalblue'
         elif i in CME:
             df.loc[i,'class'] = 'CME'
-            df.loc[i,'color_class'] = 'lime'
+            df.loc[i,'color_class'] = 'green'
         else:
             df.loc[i,'class'] = 'None'
-            df.loc[i,'color_class'] = 'tan'
+            df.loc[i,'color_class'] = 'grey'
     return df
 
+
 def plot_ppi_enrichment(df, legend_title = None, class_col = None, color_col = None, out = None):
-    plt.figure(figsize=(140,60))
-    plt.title("Enrichment in PPIs per residue position", fontsize = 140, pad = 100)
-    plt.xlabel("Consensus residue position", fontsize = 120, labelpad = 100)
-    plt.ylabel("PPIs enrichment score", fontsize = 120, labelpad = 100)
-    plt.tick_params(axis= 'both' , which = 'major', pad = 60, width = 5, length = 30, labelsize = 100)
+    plt.figure(figsize=(180,80))
+    #plt.title("Enrichment in PPIs per residue position", fontsize = 140, pad = 100)
+    plt.xlabel("Domain position", fontsize = 160, labelpad = 100)
+    plt.ylabel("PPIES", fontsize = 160, labelpad = 100)
+    plt.tick_params(axis= 'both' , which = 'major', pad = 60, width = 15, length = 50, labelsize = 140)
     plt.xticks(np.arange(1,len(df)+1,1))
     plt.xlim(0.5,len(df)+0.5)
-    plt.axhline(y = 0, color = "black", linewidth = 5)
+    plt.axhline(y = 0, color = "black", linewidth = 7.5)
     lines_range = list(np.arange(5.5,len(df),5))
     for point in lines_range:
-        plt.axvline(x= point, color = "grey", linestyle = '--', linewidth = 5)
+        plt.axvline(x= point, color = "grey", linestyle = '--', linewidth = 7.5)
     plt.xticks(np.arange(1,len(df)+1,1))
     if class_col != None and color_col != None:
         classes = list(df[class_col].unique())
         for c in classes:
             df_c = df[df[class_col] == c]
             color = df_c[color_col].unique().tolist()[0]
-            plt.scatter(df_c.index, df_c.log_oddsratio, c = color, label = c, s = 5000, edgecolor = 'black', linewidth = 10)
-            plt.errorbar(df_c.index,df_c.log_oddsratio, yerr=df_c.ci_dist, c = color, linewidth = 7.5, linestyle="None", capsize = 35.0, capthick = 7.5)
-        plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize = 80)#, title = legend_title, title_fontsize = 120)
+            plt.scatter(df_c.index, df_c.log_oddsratio, c = color, label = c, s = 10000, edgecolor = 'black', linewidth = 10)
+            plt.errorbar(df_c.index,df_c.log_oddsratio, yerr=df_c.ci_dist, c = color, linewidth = 10, linestyle="None", capsize = 35.0, capthick = 7.5)
+        legend = plt.legend(loc='center left', bbox_to_anchor=(1, 0.5), fontsize = 120)#, title = legend_title, title_fontsize = 120)
+        legend.get_frame().set_linewidth(10)
+        legend.get_frame().set_edgecolor("black")
+        for legobj in legend.legendHandles:
+            legobj.set_linewidth(7.5)
     else:
-        plt.scatter(df.index, df.log_oddsratio, s = 5000, edgecolor = 'black', linewidth = 7.5)
-        plt.errorbar(df.index,df.log_oddsratio, yerr=df.ci_dist, linewidth = 7.5, linestyle="None", capsize = 35.0, capthick = 7.5)
+        plt.scatter(df.index, df.log_oddsratio, s = 7500, edgecolor = 'black', linewidth = 10)
+        plt.errorbar(df.index,df.log_oddsratio, yerr=df.ci_dist, linewidth = 10, linestyle="None", capsize = 35.0, capthick = 7.5)
     if out != None:
         plt.savefig(out)
     plt.show()
