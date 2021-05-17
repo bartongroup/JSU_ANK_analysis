@@ -25,7 +25,7 @@ def get_rsa_class_consensus(df, aln_cols):
     """
     df_unique = df.drop_duplicates(['UniProt_dbAccessionId_A', 'PDB_dbAccessionId_A', 'PDB_dbChainId_A', 'PDB_dbResNum_A'])
     df_unique = df_unique.dropna(subset = ["RSA_CLASS_UNB_A", "RSA_UNB_A"])
-    df_unique.Alignment_column_A = df_unique.Alignment_column_A.astype(int)
+    df_unique.Alignment_column_A = df_unique.Alignment_column_A.astype(float).astype(int)
     df_cons_cols = df_unique[df_unique.Alignment_column_A.isin(aln_cols)]
     get_struc_info(df_cons_cols)
     grouped_col_rep = df_cons_cols.groupby(["Alignment_column_A", "SOURCE_ID_A"])
@@ -252,7 +252,7 @@ def get_ss_class_consensus(df, aln_cols):
     """
     df_unique = df.drop_duplicates(['UniProt_dbAccessionId_A', 'PDB_dbAccessionId_A', 'PDB_dbChainId_A', 'PDB_dbResNum_A'])
     df_unique = df_unique.dropna(subset = ["SS_CLASS_A"])
-    df_unique.Alignment_column_A = df_unique.Alignment_column_A.astype(int)
+    df_unique.Alignment_column_A = df_unique.Alignment_column_A.astype(float).astype(int)
     df_cons_cols = df_unique[df_unique.Alignment_column_A.isin(aln_cols)]
     get_struc_info(df_cons_cols)
     grouped_col_rep = df_cons_cols.groupby(["Alignment_column_A", "SOURCE_ID_A"])
@@ -363,7 +363,7 @@ def get_ss_consensus(df, aln_cols):
     """
     df_unique = df.drop_duplicates(['UniProt_dbAccessionId_A', 'PDB_dbAccessionId_A', 'PDB_dbChainId_A', 'PDB_dbResNum_A'])
     df_unique = df_unique.dropna(subset = ["SS_A"])
-    df_unique.Alignment_column_A = df_unique.Alignment_column_A.astype(int)
+    df_unique.Alignment_column_A = df_unique.Alignment_column_A.astype(float).astype(int)
     df_cons_cols = df_unique[df_unique.Alignment_column_A.isin(aln_cols)]
     get_struc_info(df_cons_cols)
     grouped_col_rep = df_cons_cols.groupby(["Alignment_column_A", "SOURCE_ID_A"])
@@ -479,7 +479,7 @@ def get_cx_score_consensus(df, aln_cols):
     """
     df_unique = df.drop_duplicates(['UniProt_dbAccessionId_A', 'PDB_dbAccessionId_A', 'PDB_dbChainId_A', 'PDB_dbResNum_A'])
     df_unique = df_unique.dropna(subset = ["res_cx_min","res_cx_max", "res_cx_mean", "res_cx_median"])
-    df_unique.Alignment_column_A = df_unique.Alignment_column_A.astype(int)
+    df_unique.Alignment_column_A = df_unique.Alignment_column_A.astype(float).astype(int)
     df_cons_cols = df_unique[df_unique.Alignment_column_A.isin(aln_cols)]
     grouped_cols_rep = df_cons_cols.groupby(["Alignment_column_A", "SOURCE_ID_A"])
     df_cons_cols["res_cx_min_mean"] = grouped_cols_rep.res_cx_min.transform('mean')
@@ -577,12 +577,12 @@ def get_struc_res_occ(structure_table, col_mask, interaction_mask = None): #retu
         structure_table = structure_table[structure_table.PDB_dbAccessionId_A.isin(structures_mask)]
     table_a = structure_table[['UniProt_dbAccessionId_A','UniProt_dbResNum_A','Alignment_column_A']]
     table_a = table_a.drop_duplicates(['UniProt_dbAccessionId_A','UniProt_dbResNum_A']).dropna()
-    table_a.Alignment_column_A = table_a.Alignment_column_A.astype(int)
+    table_a.Alignment_column_A = table_a.Alignment_column_A.astype(float).astype(int)
     table_a = table_a.rename(columns={'UniProt_dbAccessionId_A':'UniProt_dbAccessionId','UniProt_dbResNum_A':'UniProt_dbResNum','Alignment_column_A':'Alignment_column'})
     
     table_b = structure_table[['UniProt_dbAccessionId_B','UniProt_dbResNum_B','Alignment_column_B']]
     table_b = table_b.drop_duplicates(['UniProt_dbAccessionId_B','UniProt_dbResNum_B']).dropna()
-    table_b.Alignment_column_B = table_b.Alignment_column_B.astype(int)
+    table_b.Alignment_column_B = table_b.Alignment_column_B.astype(float).astype(int)
     table_b = table_b.rename(columns={'UniProt_dbAccessionId_B':'UniProt_dbAccessionId','UniProt_dbResNum_B':'UniProt_dbResNum','Alignment_column_B':'Alignment_column'})
 
     table_ab = pd.concat([table_a,table_b])
@@ -735,7 +735,7 @@ def get_cons_cols_eq(cons_cols):
 
 def get_color_command(df, cons_cols, pdb_id, class_list, cols_list):
     cons_cols_eq = get_cons_cols_eq(cons_cols)
-    df.Alignment_column_A = df.Alignment_column_A.astype(int)
+    df.Alignment_column_A = df.Alignment_column_A.astype(float).astype(int)
     df_cons = df[df.Alignment_column_A.isin(cons_cols)]
     df_struc = df_cons[df_cons.PDB_dbAccessionId_A == pdb_id].drop_duplicates(["PDB_dbResNum_A"])
     command = ""
