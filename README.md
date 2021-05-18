@@ -1,2 +1,2 @@
-# ANK_repeat_analysis
-This repository contais a set of notebooks and libraries used to analyse the distribution of variants within the ankyrin repeat motif and contextualize it with protein structure data.
+# Ankyrin repeats in context with human genetic variation
+This repository contais a set of notebooks and libraries used to analyse the distribution of missense variants within the ankyrin repeat motif and explain the observed patterns with structural features such as intra-domain contacts, residue solvent accessibility (RSA) or protein-protein interactions. Included in this repository, in the _/files_ directory, are the main input files needed to run the notebook. These files are the multiple sequence alignment containing the 7,407 reviewed repeat sequences used in this analysis as well as the tables resulting from the packages _VarAlign_ and _ProIntVar_.
